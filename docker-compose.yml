@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fragrance-universe-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fragrance
+      POSTGRES_PASSWORD: fragrance
+      POSTGRES_DB: fragrance_universe
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fragrance -d fragrance_universe"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
