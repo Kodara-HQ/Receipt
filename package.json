@@ -7,9 +7,12 @@
     "install:all": "npm install --prefix backend && npm install --prefix frontend",
     "dev": "concurrently -n api,web -c magenta,cyan \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "db:up": "docker compose up -d",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "build": "npm run build --prefix frontend",
+    "deploy": "npm run build && gh-pages -d frontend/dist"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "gh-pages": "^6.3.0"
   }
 }
