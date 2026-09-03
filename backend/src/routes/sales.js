@@ -3,10 +3,10 @@ import { query, withTransaction } from "../config/db.js";
 import { asyncHandler, httpError } from "../middleware/errorHandler.js";
 
 import { nextReceiptNumber } from "../services/receiptNumber.js";
+import { PRODUCT_TYPES } from "../constants/productTypes.js";
 
 const router = Router();
 const PAYMENT_METHODS = ["Cash", "Mobile Money", "Card", "Other"];
-const PRODUCT_TYPES = ["Perfume", "Air Freshener", "Other"];
 
 
 router.get(
@@ -86,7 +86,7 @@ router.post(
     }
 
     const customerName = String(req.body.customer_name || "").trim() || null;
-    const customerPhone = String(req.body.customer_phone || "").trim() || null;
+    const customerPhone = String(req.body.customer_phone || "").trim() || "0541855747";
     const cashier = String(req.body.cashier || "").trim() || null;
 
     const sale = await withTransaction(async (client) => {
@@ -136,7 +136,7 @@ router.post(
 
         if (!name) throw httpError(400, "Each item needs a product name.");
         if (!PRODUCT_TYPES.includes(productType)) {
-          throw httpError(400, "Choose a product type: Perfume, Air Freshener, or Other.");
+          throw httpError(400, `Choose a product type: ${PRODUCT_TYPES.join(", ")}.`);
         }
         if (Number.isNaN(unitPrice) || unitPrice < 0) {
           throw httpError(400, "Each item needs a unit price of 0 or more.");
@@ -213,6 +213,27 @@ router.post(
     });
 
     res.status(201).json(sale);
+  })
+);
+
+router.delete(
+  "/",
+  asyncHandler(async (_req, res) => {
+    await withTransaction(async (client) => {
+      await client.query("DELETE FROM sale_items");
+      await client.query("DELETE FROM sales");
+      await client.query("UPDATE receipt_counter SET last_number = 0, last_date = '' WHERE id = 1");
+    });
+    res.json({ ok: true });
+  })
+);
+
+router.delete(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const { rowCount } = await query("DELETE FROM sales WHERE id = $1", [req.params.id]);
+    if (!rowCount) throw httpError(404, "Receipt not found.");
+    res.json({ ok: true });
   })
 );
 

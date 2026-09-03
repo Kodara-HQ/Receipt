@@ -5,6 +5,7 @@ import { useToast } from "../context/ToastContext";
 import Modal from "../components/ui/Modal";
 import { Field, btnGhost, btnPrimary, inputClass } from "../components/ui/Field";
 import { formatDate, money } from "../utils/format";
+import { PRODUCT_TYPES } from "../constants/productTypes";
 
 const EMPTY = {
   name: "",
@@ -153,9 +154,9 @@ export default function Products() {
         />
         <select className={`${inputClass} sm:max-w-xs`} value={category} onChange={(event) => setCategory(event.target.value)}>
           <option value="">All categories</option>
-          <option>Perfume</option>
-          <option>Air Freshener</option>
-          <option>Other</option>
+                  {PRODUCT_TYPES.map((type) => (
+                    <option key={type}>{type}</option>
+                  ))}
         </select>
       </div>
 
@@ -260,9 +261,9 @@ export default function Products() {
             </Field>
             <Field label="Category">
               <select className={inputClass} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                <option>Perfume</option>
-                <option>Air Freshener</option>
-                <option>Other</option>
+                  {PRODUCT_TYPES.map((type) => (
+                    <option key={type}>{type}</option>
+                  ))}
               </select>
             </Field>
             <Field label="Size / variant">

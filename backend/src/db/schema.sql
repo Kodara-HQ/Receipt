@@ -4,7 +4,7 @@ SET search_path TO fragrance_universe;
 CREATE TABLE IF NOT EXISTS products (
   id SERIAL PRIMARY KEY,
   name VARCHAR(200) NOT NULL,
-  category VARCHAR(50) NOT NULL CHECK (category IN ('Perfume', 'Air Freshener', 'Other')),
+  category VARCHAR(80) NOT NULL,
   variant VARCHAR(120),
   selling_price NUMERIC(12, 2) NOT NULL CHECK (selling_price >= 0),
   cost_price NUMERIC(12, 2) CHECK (cost_price IS NULL OR cost_price >= 0),
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS sale_items (
   sale_id INTEGER NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
   product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
   product_name VARCHAR(200) NOT NULL,
-  product_type VARCHAR(50),
+  product_type VARCHAR(120),
   variant VARCHAR(120),
   quantity INTEGER NOT NULL CHECK (quantity > 0),
   unit_price NUMERIC(12, 2) NOT NULL,
@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS receipt_counter (
   id INTEGER PRIMARY KEY DEFAULT 1,
   last_number INTEGER NOT NULL DEFAULT 0,
+  last_date VARCHAR(8) NOT NULL DEFAULT '',
   CONSTRAINT single_counter_row CHECK (id = 1)
 );
 

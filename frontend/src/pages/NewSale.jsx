@@ -5,6 +5,7 @@ import { useToast } from "../context/ToastContext";
 import Receipt from "../components/receipt/Receipt";
 import ReceiptPreviewModal from "../components/receipt/ReceiptPreviewModal";
 import { Field, btnGhost, btnPrimary, inputClass } from "../components/ui/Field";
+import { PRODUCT_TYPES } from "../constants/productTypes";
 import { money } from "../utils/format";
 import { downloadReceiptPdf, printReceipt } from "../utils/pdf";
 
@@ -20,13 +21,14 @@ export default function NewSale() {
   const { settings } = useSettings();
   const currency = settings?.currency || "GH₵";
   const { push } = useToast();
+  const [catalog, setCatalog] = useState([]);
   const [item, setItem] = useState(EMPTY_ITEM);
   const [items, setItems] = useState([]);
   const [discount, setDiscount] = useState("0");
   const [amountPaid, setAmountPaid] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("0541855747");
   const [cashier, setCashier] = useState(settings?.default_cashier || "");
   const [saving, setSaving] = useState(false);
   const [completed, setCompleted] = useState(null);
@@ -39,6 +41,13 @@ export default function NewSale() {
     setCashier(settings?.default_cashier || "");
   }, [settings]);
 
+  useEffect(() => {
+    api
+      .get("/api/products?status=active")
+      .then(setCatalog)
+      .catch(() => {});
+  }, []);
+
   const subtotal = items.reduce((sum, line) => sum + line.unit_price * line.quantity, 0);
   const discountValue = Number(discount || 0);
   const total = Math.max(subtotal - (Number.isNaN(discountValue) ? 0 : discountValue), 0);
@@ -47,7 +56,7 @@ export default function NewSale() {
 
   const previewSale = useMemo(
     () => ({
-      receipt_number: "REC-••••••",
+      receipt_number: "••••••••••••",
       customer_name: customerName,
       customer_phone: customerPhone,
       subtotal,
@@ -69,6 +78,21 @@ export default function NewSale() {
     }),
     [items, customerName, customerPhone, subtotal, discountValue, total, paid, change, paymentMethod, cashier]
   );
+
+  function pickProduct(id) {
+    const product = catalog.find((entry) => String(entry.id) === String(id));
+    if (!product) {
+      setItem(EMPTY_ITEM);
+      return;
+    }
+    setItem({
+      name: product.name,
+      product_type: PRODUCT_TYPES.includes(product.category) ? product.category : "Other",
+      variant: product.variant || "",
+      quantity: "1",
+      unit_price: Number(product.selling_price) > 0 ? String(product.selling_price) : "",
+    });
+  }
 
   function addItem(event) {
     event.preventDefault();
@@ -148,7 +172,7 @@ export default function NewSale() {
       setDiscount("0");
       setAmountPaid("");
       setCustomerName("");
-      setCustomerPhone("");
+      setCustomerPhone("0541855747");
       setPrintAfterSave(shouldPrint);
       push(`Receipt ${sale.receipt_number} created.`);
     } catch (error) {
@@ -169,6 +193,23 @@ export default function NewSale() {
         <div className="space-y-5">
           <form className="rounded-2xl bg-white p-4 shadow-card sm:p-5" onSubmit={addItem}>
             <h2 className="font-display text-xl text-plum-800">Add product</h2>
+            <div className="mt-3">
+              <Field label="Select product">
+                <select
+                  className={inputClass}
+                  value={catalog.find((p) => p.name === item.name && (p.variant || "") === item.variant)?.id || ""}
+                  onChange={(e) => pickProduct(e.target.value)}
+                >
+                  <option value="">Choose a product</option>
+                  {catalog.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name}
+                      {product.variant ? ` (${product.variant})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <Field label="Product name">
                 <input
@@ -184,9 +225,9 @@ export default function NewSale() {
                   value={item.product_type}
                   onChange={(e) => setItem({ ...item, product_type: e.target.value })}
                 >
-                  <option>Perfume</option>
-                  <option>Air Freshener</option>
-                  <option>Other</option>
+                  {PRODUCT_TYPES.map((type) => (
+                    <option key={type}>{type}</option>
+                  ))}
                 </select>
               </Field>
               <Field label="Size / variant">
@@ -256,7 +297,7 @@ export default function NewSale() {
               <Field label="Customer name" hint="Optional">
                 <input className={inputClass} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
               </Field>
-              <Field label="Customer phone" hint="Optional">
+              <Field label="Customer phone">
                 <input className={inputClass} value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
               </Field>
               <Field label="Cashier">

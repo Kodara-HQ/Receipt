@@ -19,10 +19,14 @@ async function request(path, options = {}) {
   const token = getToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const response = await fetch(path, { ...options, headers });
+  let response;
+  try {
+    response = await fetch(path, { ...options, headers });
+  } catch {
+    throw new Error("Cannot reach the server. Make sure the app is running, then try again.");
+  }
 
   if (response.status === 401) {
-    // Clear auth via context callback — no hard page reload, no blink
     _onUnauthorized?.();
     throw new Error("Session expired. Please log in again.");
   }

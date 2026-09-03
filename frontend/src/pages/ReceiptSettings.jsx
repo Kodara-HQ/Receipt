@@ -4,12 +4,13 @@ import { useSettings } from "../context/SettingsContext";
 import { useToast } from "../context/ToastContext";
 import Receipt from "../components/receipt/Receipt";
 import SignaturePad from "../components/signature/SignaturePad";
+import ProductManager from "../components/ProductManager";
 import { Field, btnGhost, btnPrimary, inputClass } from "../components/ui/Field";
 
 const SAMPLE_SALE = {
-  receipt_number: "REC-000001",
+  receipt_number: "202609030001",
   customer_name: "Ama Mensah",
-  customer_phone: "024 000 0000",
+  customer_phone: "0541855747",
   subtotal: 280,
   discount: 10,
   total: 270,
@@ -238,6 +239,8 @@ export default function ReceiptSettings() {
           </div>
         </aside>
       </div>
+
+      <ProductManager />
     </div>
   );
 }

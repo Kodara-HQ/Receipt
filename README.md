@@ -37,7 +37,7 @@ The first time the API starts it:
 - Saves default company settings for **THE FRAGRANCE UNIVERSE**
 - Adds a small sample product catalogue so you can try a sale immediately
 
-Receipt numbers are generated as `REC-000001`, `REC-000002`, and so on.
+Receipt numbers follow the date, then a daily sequence, for example `202609030001`, `202609030002`.
 
 ## Main screens
 

@@ -2,8 +2,10 @@ import { Router } from "express";
 import { query } from "../config/db.js";
 import { asyncHandler, httpError } from "../middleware/errorHandler.js";
 
+import { PRODUCT_TYPES } from "../constants/productTypes.js";
+
 const router = Router();
-const CATEGORIES = ["Perfume", "Air Freshener", "Other"];
+const CATEGORIES = PRODUCT_TYPES;
 const STATUSES = ["active", "inactive"];
 
 function parseProduct(body, { partial = false } = {}) {
@@ -17,7 +19,7 @@ function parseProduct(body, { partial = false } = {}) {
 
   if (!partial || body.category !== undefined) {
     if (!CATEGORIES.includes(body.category)) {
-      throw httpError(400, "Category must be Perfume, Air Freshener, or Other.");
+      throw httpError(400, `Category must be one of: ${CATEGORIES.join(", ")}.`);
     }
     data.category = body.category;
   }
@@ -203,13 +205,7 @@ router.patch(
 router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
-    const used = await query("SELECT 1 FROM sale_items WHERE product_id = $1 LIMIT 1", [req.params.id]);
-    if (used.rows[0]) {
-      throw httpError(
-        400,
-        "This product appears on past receipts. Mark it inactive instead of deleting it."
-      );
-    }
+    await query("UPDATE sale_items SET product_id = NULL WHERE product_id = $1", [req.params.id]);
     const { rowCount } = await query("DELETE FROM products WHERE id = $1", [req.params.id]);
     if (!rowCount) throw httpError(404, "Product not found.");
     res.json({ ok: true });
