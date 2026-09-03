@@ -34,7 +34,7 @@ export default function Login() {
             <span className="font-display text-xl text-plum-800 tracking-widest">TFU</span>
           </div>
           <h1 className="font-display text-3xl text-plum-900">THE FRAGRANCE UNIVERSE</h1>
-          <p className="mt-1 text-sm text-ink-500 tracking-wide">Perfumes & Air Fresheners</p>
+          <p className="mt-1 text-sm text-ink-500">All Kinds of fragrance (Room, Laundry, Wardrobes, Car, Body etc)</p>
         </div>
 
         {/* Card */}

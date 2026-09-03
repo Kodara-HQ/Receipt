@@ -27,7 +27,7 @@ export default function Sidebar({ open, onClose }) {
         }`}
       >
         <div className="border-b border-white/10 px-6 py-7">
-          <p className="text-[11px] uppercase tracking-[0.28em] text-gold-400">Perfumes & Air Fresheners</p>
+          <p className="text-[11px] leading-snug text-gold-400">All Kinds of fragrance (Room, Laundry, Wardrobes, Car, Body etc)</p>
           <h1 className="mt-2 font-display text-[1.65rem] leading-tight text-cream-50">
             THE FRAGRANCE UNIVERSE
           </h1>

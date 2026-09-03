@@ -32,7 +32,7 @@ export default function Receipt({ sale, settings, preview = false }) {
           <div className="receipt-monogram">TFU</div>
         )}
         <h1>{settings.company_name || "THE FRAGRANCE UNIVERSE"}</h1>
-        <p className="tagline">Perfumes & Air Fresheners</p>
+        <p className="tagline">All Kinds of fragrance (Room, Laundry, Wardrobes, Car, Body etc)</p>
         {settings.address && <p>{settings.address}</p>}
         {settings.phone && <p>{settings.phone}</p>}
         {settings.email && <p>{settings.email}</p>}
