@@ -1,21 +1,19 @@
+# Optional. Local development uses XAMPP MySQL on port 3306 instead.
+# Only start this if XAMPP is not running, to avoid a port conflict.
 services:
   db:
-    image: postgres:16-alpine
+    image: mariadb:11
     container_name: fragrance-universe-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: fragrance
-      POSTGRES_PASSWORD: fragrance
-      POSTGRES_DB: fragrance_universe
+      MYSQL_ROOT_PASSWORD: ""
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: fragrance_universe
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fragrance -d fragrance_universe"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      - mariadata:/var/lib/mysql
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
 
 volumes:
-  pgdata:
+  mariadata:

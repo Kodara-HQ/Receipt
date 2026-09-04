@@ -7,7 +7,12 @@ const USER_KEY = "tfu_user";
 
 async function apiFetch(path, options = {}) {
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
-  const res = await fetch(`${import.meta.env.VITE_API_URL || ""}${path}`, { ...options, headers });
+  let res;
+  try {
+    res = await fetch(`${import.meta.env.VITE_API_URL || ""}${path}`, { ...options, headers });
+  } catch {
+    throw new Error("Cannot reach the server. Start MySQL in XAMPP, then run npm run dev.");
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Request failed.");
   return data;

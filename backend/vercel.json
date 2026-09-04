@@ -1,6 +1,11 @@
 {
-  "outputDirectory": null,
+  "functions": {
+    "api/index.php": {
+      "runtime": "vercel-php@0.7.4",
+      "includeFiles": "{public,src,schema.sql,uploads}/**"
+    }
+  },
   "rewrites": [
-    { "source": "/(.*)", "destination": "/api" }
+    { "source": "/(.*)", "destination": "/api/index.php" }
   ]
 }
