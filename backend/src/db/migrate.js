@@ -1,13 +1,9 @@
 import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import bcrypt from "bcryptjs";
 import { pool } from "../config/db.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 export async function migrate() {
-  const schema = fs.readFileSync(path.join(__dirname, "schema.sql"), "utf8");
+  const schema = fs.readFileSync(new URL("./schema.sql", import.meta.url), "utf8");
   await pool.query(schema);
   await pool.query(`
     ALTER TABLE sales ADD COLUMN IF NOT EXISTS signature TEXT;

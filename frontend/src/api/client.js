@@ -1,4 +1,5 @@
 const TOKEN_KEY = "tfu_token";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // Callback set by AuthProvider so the API layer can clear auth state
 // without importing React hooks (which would create a circular dep)
@@ -21,7 +22,7 @@ async function request(path, options = {}) {
 
   let response;
   try {
-    response = await fetch(path, { ...options, headers });
+    response = await fetch(`${API_BASE}${path}`, { ...options, headers });
   } catch {
     throw new Error("Cannot reach the server. Make sure the app is running, then try again.");
   }
@@ -48,5 +49,6 @@ export const api = {
 
 export function fileUrl(path) {
   if (!path) return "";
-  return path;
+  if (path.startsWith("http")) return path;
+  return `${API_BASE}${path}`;
 }

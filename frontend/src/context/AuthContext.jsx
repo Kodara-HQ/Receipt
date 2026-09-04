@@ -7,7 +7,7 @@ const USER_KEY = "tfu_user";
 
 async function apiFetch(path, options = {}) {
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
-  const res = await fetch(path, { ...options, headers });
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ""}${path}`, { ...options, headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Request failed.");
   return data;

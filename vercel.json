@@ -1,17 +1,9 @@
 {
-  "installCommand": "npm install && npm install --prefix backend && npm install --prefix frontend",
-  "buildCommand": "npm run build --prefix frontend",
+  "installCommand": "npm install && npm install --prefix backend && npm install --prefix frontend --include=dev",
+  "buildCommand": "npm run build",
   "outputDirectory": "frontend/dist",
-  "framework": null,
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api" },
-    { "source": "/uploads/:path*", "destination": "/api" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ],
-  "functions": {
-    "api/index.mjs": {
-      "maxDuration": 30,
-      "includeFiles": "backend/{src,uploads}/**"
-    }
-  }
+    { "source": "/uploads/:path*", "destination": "/api" }
+  ]
 }

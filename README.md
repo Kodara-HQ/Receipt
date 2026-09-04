@@ -31,12 +31,14 @@ If you are not using Docker, create a PostgreSQL database and copy `backend/.env
 
 ## Deploy on Vercel
 
-This app needs two environment variables in the Vercel project settings:
+Use **one** Vercel project with Root Directory left as the repository root (`.`), not `frontend` or `backend`.
+
+Set these environment variables, then redeploy:
 
 - `DATABASE_URL` — a hosted PostgreSQL URL (Neon, Supabase, or Vercel Postgres). Localhost will not work on Vercel.
 - `JWT_SECRET` — a long random string used to sign login tokens.
 
-After those are set, redeploy. The site is the React app; `/api` runs as a serverless function and creates tables on first request.
+If you keep separate Frontend and Backend Vercel projects, set `DATABASE_URL` and `JWT_SECRET` on the backend project, and set `VITE_API_URL` on the frontend project to the backend URL (for example `https://your-api.vercel.app`).
 
 ## First run
 
