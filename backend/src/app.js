@@ -4,11 +4,12 @@ import path from "path";
 import { fileURLToPath } from "url";
 import routes from "./routes/index.js";
 import { errorHandler } from "./middleware/errorHandler.js";
-import { uploadsDir } from "./middleware/upload.js";
+import { ensureUploadsDir, uploadsDir } from "./middleware/upload.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function createApp() {
+  ensureUploadsDir();
   const app = express();
 
   app.use(cors());

@@ -29,6 +29,15 @@ The API runs at [http://localhost:4000](http://localhost:4000).
 
 If you are not using Docker, create a PostgreSQL database and copy `backend/.env.example` to `backend/.env` with your connection string.
 
+## Deploy on Vercel
+
+This app needs two environment variables in the Vercel project settings:
+
+- `DATABASE_URL` — a hosted PostgreSQL URL (Neon, Supabase, or Vercel Postgres). Localhost will not work on Vercel.
+- `JWT_SECRET` — a long random string used to sign login tokens.
+
+After those are set, redeploy. The site is the React app; `/api` runs as a serverless function and creates tables on first request.
+
 ## First run
 
 The first time the API starts it:

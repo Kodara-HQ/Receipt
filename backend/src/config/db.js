@@ -2,10 +2,28 @@ import pg from "pg";
 
 const { Pool } = pg;
 
+const connectionString = process.env.DATABASE_URL || "";
+const hosted =
+  Boolean(process.env.VERCEL) ||
+  /neon\.tech|supabase\.co|pooler\.supabase|vercel-storage|render\.com|amazonaws\.com/.test(
+    connectionString
+  );
+
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  options: "-c search_path=fragrance_universe",
+  ssl: hosted ? { rejectUnauthorized: false } : undefined,
 });
+
+const connect = pool.connect.bind(pool);
+pool.connect = async function connectWithSearchPath() {
+  const client = await connect();
+  try {
+    await client.query("SET search_path TO fragrance_universe");
+  } catch {
+    // Schema is created on first migrate.
+  }
+  return client;
+};
 
 export async function query(text, params) {
   const result = await pool.query(text, params);

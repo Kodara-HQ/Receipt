@@ -5,11 +5,28 @@ import multer from "multer";
 import { httpError } from "./errorHandler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-export const uploadsDir = path.join(__dirname, "..", "..", "uploads");
+const localUploadsDir = path.join(__dirname, "..", "..", "uploads");
+export const uploadsDir = process.env.VERCEL
+  ? path.join("/tmp", "fragrance-uploads")
+  : localUploadsDir;
 
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+export function ensureUploadsDir() {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  if (!process.env.VERCEL || !fs.existsSync(localUploadsDir)) {
+    return;
+  }
+  for (const file of fs.readdirSync(localUploadsDir)) {
+    if (file.startsWith(".")) continue;
+    const dest = path.join(uploadsDir, file);
+    if (!fs.existsSync(dest)) {
+      fs.copyFileSync(path.join(localUploadsDir, file), dest);
+    }
+  }
 }
+
+ensureUploadsDir();
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),

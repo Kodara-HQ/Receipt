@@ -74,6 +74,9 @@ export async function migrate() {
 }
 
 export async function waitForDatabase(retries = 20, delayMs = 1000) {
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL is not set. Add a PostgreSQL URL in the host environment variables.");
+  }
   for (let attempt = 1; attempt <= retries; attempt += 1) {
     try {
       await pool.query("SELECT 1");
