@@ -2,7 +2,17 @@ import pg from "pg";
 
 const { Pool } = pg;
 
-const connectionString = process.env.DATABASE_URL || "";
+export function getDatabaseUrl() {
+  return (
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.DATABASE_URL_UNPOOLED ||
+    ""
+  );
+}
+
+const connectionString = getDatabaseUrl();
 const hosted =
   Boolean(process.env.VERCEL) ||
   /neon\.tech|supabase\.co|pooler\.supabase|vercel-storage|render\.com|amazonaws\.com/.test(
@@ -10,7 +20,7 @@ const hosted =
   );
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: connectionString || undefined,
   ssl: hosted ? { rejectUnauthorized: false } : undefined,
 });
 

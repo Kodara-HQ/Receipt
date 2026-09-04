@@ -1,6 +1,6 @@
 import fs from "fs";
 import bcrypt from "bcryptjs";
-import { pool } from "../config/db.js";
+import { getDatabaseUrl, pool } from "../config/db.js";
 
 export async function migrate() {
   const schema = fs.readFileSync(new URL("./schema.sql", import.meta.url), "utf8");
@@ -70,8 +70,10 @@ export async function migrate() {
 }
 
 export async function waitForDatabase(retries = 20, delayMs = 1000) {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is not set. Add a PostgreSQL URL in the host environment variables.");
+  if (!getDatabaseUrl()) {
+    throw new Error(
+      "DATABASE_URL is not set. In Vercel: Settings → Environment Variables, add DATABASE_URL, then Redeploy."
+    );
   }
   for (let attempt = 1; attempt <= retries; attempt += 1) {
     try {
