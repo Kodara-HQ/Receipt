@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: process.env.VERCEL ? "/" : "/Receipt/",
+  base: process.env.VERCEL || process.env.RENDER ? "/" : "/Receipt/",
 
   server: {
     port: 5173,

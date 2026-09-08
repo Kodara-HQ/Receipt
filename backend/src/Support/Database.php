@@ -82,21 +82,29 @@ class Database
             $config['port']
         );
 
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
+        ];
+        $hosted = !in_array($config['host'], ['127.0.0.1', 'localhost'], true);
+        if ($hosted) {
+            $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+        }
+
         try {
-            $pdo = new PDO($dsn, $config['user'], $config['pass'], [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
-            ]);
+            $pdo = new PDO($dsn, $config['user'], $config['pass'], $options);
             $name = str_replace('`', '', $config['name']);
-            $pdo->exec(
-                "CREATE DATABASE IF NOT EXISTS `{$name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-            );
+            if (!$hosted) {
+                $pdo->exec(
+                    "CREATE DATABASE IF NOT EXISTS `{$name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+                );
+            }
             $pdo->exec("USE `{$name}`");
         } catch (PDOException $error) {
             throw new HttpException(
                 503,
-                'Could not connect to MySQL. Start MySQL in XAMPP, then open phpMyAdmin. ' . $error->getMessage()
+                'Could not connect to MySQL. ' . $error->getMessage()
             );
         }
 
