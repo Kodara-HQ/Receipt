@@ -6,7 +6,7 @@ namespace App\Controllers;
 
 use App\Http\HttpException;
 use App\Http\Request;
-use App\Support\Database;
+use App\Support\Store;
 use App\Support\Uploads;
 
 class SettingsController
@@ -31,36 +31,25 @@ class SettingsController
         }
         $currency = trim((string) ($request->body['currency'] ?? $current['currency'])) ?: 'GH₵';
 
-        Database::instance()->execute(
-            'UPDATE company_settings SET
-                company_name = ?,
-                address = ?,
-                phone = ?,
-                email = ?,
-                receipt_footer = ?,
-                signature_enabled = ?,
-                currency = ?,
-                receipt_paper_size = ?,
-                show_customer_info = ?,
-                show_cashier_name = ?,
-                default_cashier = ?,
-                updated_at = NOW()
-             WHERE id = 1',
-            [
-                $companyName,
-                (string) ($request->body['address'] ?? $current['address'] ?? ''),
-                (string) ($request->body['phone'] ?? $current['phone'] ?? ''),
-                (string) ($request->body['email'] ?? $current['email'] ?? ''),
-                (string) ($request->body['receipt_footer'] ?? $current['receipt_footer'] ?? ''),
-                self::bool($request->body['signature_enabled'] ?? $current['signature_enabled']) ? 1 : 0,
-                $currency,
-                $paperSize,
-                self::bool($request->body['show_customer_info'] ?? $current['show_customer_info']) ? 1 : 0,
-                self::bool($request->body['show_cashier_name'] ?? $current['show_cashier_name']) ? 1 : 0,
-                (string) ($request->body['default_cashier'] ?? $current['default_cashier'] ?? ''),
-            ]
-        );
-        return self::current();
+        return Store::mutate(function (array &$store) use ($request, $current, $companyName, $paperSize, $currency) {
+            $store['settings'] = array_merge($current, [
+                'company_name' => $companyName,
+                'address' => (string) ($request->body['address'] ?? $current['address'] ?? ''),
+                'phone' => (string) ($request->body['phone'] ?? $current['phone'] ?? ''),
+                'email' => (string) ($request->body['email'] ?? $current['email'] ?? ''),
+                'receipt_footer' => (string) ($request->body['receipt_footer'] ?? $current['receipt_footer'] ?? ''),
+                'logo' => $current['logo'] ?? null,
+                'signature' => $current['signature'] ?? null,
+                'signature_enabled' => self::bool($request->body['signature_enabled'] ?? $current['signature_enabled']),
+                'currency' => $currency,
+                'receipt_paper_size' => $paperSize,
+                'show_customer_info' => self::bool($request->body['show_customer_info'] ?? $current['show_customer_info']),
+                'show_cashier_name' => self::bool($request->body['show_cashier_name'] ?? $current['show_cashier_name']),
+                'default_cashier' => (string) ($request->body['default_cashier'] ?? $current['default_cashier'] ?? ''),
+                'updated_at' => Store::now(),
+            ]);
+            return $store['settings'];
+        });
     }
 
     public static function uploadLogo(Request $request): array
@@ -70,11 +59,7 @@ class SettingsController
         if (!empty($current['logo']) && $current['logo'] !== $nextPath) {
             Uploads::remove($current['logo']);
         }
-        Database::instance()->execute(
-            'UPDATE company_settings SET logo = ?, updated_at = NOW() WHERE id = 1',
-            [$nextPath]
-        );
-        return self::current();
+        return self::patch(['logo' => $nextPath]);
     }
 
     public static function deleteLogo(Request $request): array
@@ -83,10 +68,7 @@ class SettingsController
         if (!empty($current['logo'])) {
             Uploads::remove($current['logo']);
         }
-        Database::instance()->execute(
-            'UPDATE company_settings SET logo = NULL, updated_at = NOW() WHERE id = 1'
-        );
-        return self::current();
+        return self::patch(['logo' => null]);
     }
 
     public static function uploadSignature(Request $request): array
@@ -99,18 +81,10 @@ class SettingsController
         } else {
             throw new HttpException(400, 'Upload a signature image or save a drawn signature.');
         }
-
         if (!empty($current['signature']) && $current['signature'] !== $nextPath) {
             Uploads::remove($current['signature']);
         }
-
-        Database::instance()->execute(
-            'UPDATE company_settings
-             SET signature = ?, signature_enabled = 1, updated_at = NOW()
-             WHERE id = 1',
-            [$nextPath]
-        );
-        return self::current();
+        return self::patch(['signature' => $nextPath, 'signature_enabled' => true]);
     }
 
     public static function deleteSignature(Request $request): array
@@ -119,19 +93,24 @@ class SettingsController
         if (!empty($current['signature'])) {
             Uploads::remove($current['signature']);
         }
-        Database::instance()->execute(
-            'UPDATE company_settings SET signature = NULL, updated_at = NOW() WHERE id = 1'
-        );
-        return self::current();
+        return self::patch(['signature' => null, 'signature_enabled' => false]);
     }
 
     private static function current(): array
     {
-        $row = Database::instance()->queryOne('SELECT * FROM company_settings WHERE id = 1');
+        $row = Store::all()['settings'] ?? null;
         if (!$row) {
             throw new HttpException(500, 'Company settings are missing.');
         }
         return $row;
+    }
+
+    private static function patch(array $changes): array
+    {
+        return Store::mutate(function (array &$store) use ($changes) {
+            $store['settings'] = array_merge($store['settings'], $changes, ['updated_at' => Store::now()]);
+            return $store['settings'];
+        });
     }
 
     private static function bool(mixed $value): bool

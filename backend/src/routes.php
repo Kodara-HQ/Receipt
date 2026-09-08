@@ -40,7 +40,7 @@ $router->add('DELETE', '/api/sales', [SalesController::class, 'clear']);
 $router->add('GET', '/api/sales/{id}', [SalesController::class, 'show']);
 $router->add('DELETE', '/api/sales/{id}', [SalesController::class, 'delete']);
 
-$router->add('GET', '/api/settings', [SettingsController::class, 'show']);
+$router->add('GET', '/api/settings', [SettingsController::class, 'show'], false);
 $router->add('PUT', '/api/settings', [SettingsController::class, 'update']);
 $router->add('POST', '/api/settings/logo', [SettingsController::class, 'uploadLogo']);
 $router->add('DELETE', '/api/settings/logo', [SettingsController::class, 'deleteLogo']);

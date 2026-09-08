@@ -11,7 +11,7 @@ async function apiFetch(path, options = {}) {
   try {
     res = await fetch(`${import.meta.env.VITE_API_URL || ""}${path}`, { ...options, headers });
   } catch {
-    throw new Error("Cannot reach the server. Start MySQL in XAMPP, then run npm run dev.");
+    throw new Error("Cannot reach the server. Run npm run dev, then try again.");
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Request failed.");

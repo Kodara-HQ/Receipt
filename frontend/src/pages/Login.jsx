@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import BrandMark from "../components/BrandMark";
 import { inputClass, btnPrimary } from "../components/ui/Field";
 
 export default function Login() {
@@ -30,9 +31,7 @@ export default function Login() {
       <div className="w-full max-w-sm">
         {/* Brand header */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2 border-plum-700">
-            <span className="font-display text-xl text-plum-800 tracking-widest">TFU</span>
-          </div>
+          <BrandMark className="mx-auto mb-4 h-28 w-28" />
           <h1 className="font-display text-3xl text-plum-900">THE FRAGRANCE UNIVERSE</h1>
           <p className="mt-1 text-sm text-ink-500">All Kinds of fragrance (Room, Laundry, Wardrobes, Car, Body etc)</p>
         </div>

@@ -7,9 +7,9 @@ namespace App\Controllers;
 use App\Http\HttpException;
 use App\Http\Request;
 use App\Http\Response;
-use App\Support\Database;
 use App\Support\ProductTypes;
 use App\Support\ReceiptNumber;
+use App\Support\Store;
 
 class SalesController
 {
@@ -17,52 +17,46 @@ class SalesController
 
     public static function list(Request $request): array
     {
-        $search = trim((string) ($request->query['search'] ?? ''));
+        $search = strtolower(trim((string) ($request->query['search'] ?? '')));
         $paymentMethod = trim((string) ($request->query['payment_method'] ?? ''));
         $from = trim((string) ($request->query['from'] ?? ''));
         $to = trim((string) ($request->query['to'] ?? ''));
-        $params = [];
-        $where = [];
 
-        if ($search !== '') {
-            $like = '%' . strtolower($search) . '%';
-            $params[] = $like;
-            $params[] = $like;
-            $where[] = '(LOWER(receipt_number) LIKE ? OR LOWER(COALESCE(customer_name, \'\')) LIKE ?)';
-        }
-        if ($paymentMethod !== '' && in_array($paymentMethod, self::PAYMENTS, true)) {
-            $params[] = $paymentMethod;
-            $where[] = 'payment_method = ?';
-        }
-        if ($from !== '') {
-            $params[] = $from;
-            $where[] = 'DATE(created_at) >= ?';
-        }
-        if ($to !== '') {
-            $params[] = $to;
-            $where[] = 'DATE(created_at) <= ?';
-        }
-
-        $sql = 'SELECT * FROM sales';
-        if ($where) {
-            $sql .= ' WHERE ' . implode(' AND ', $where);
-        }
-        $sql .= ' ORDER BY created_at DESC LIMIT 300';
-        return Database::instance()->query($sql, $params);
+        $rows = Store::all()['sales'] ?? [];
+        $rows = array_values(array_filter($rows, static function (array $sale) use ($search, $paymentMethod, $from, $to) {
+            if ($search !== '') {
+                $haystack = strtolower(($sale['receipt_number'] ?? '') . ' ' . ($sale['customer_name'] ?? ''));
+                if (!str_contains($haystack, $search)) {
+                    return false;
+                }
+            }
+            if ($paymentMethod !== '' && ($sale['payment_method'] ?? '') !== $paymentMethod) {
+                return false;
+            }
+            $day = substr((string) ($sale['created_at'] ?? ''), 0, 10);
+            if ($from !== '' && $day < $from) {
+                return false;
+            }
+            if ($to !== '' && $day > $to) {
+                return false;
+            }
+            return true;
+        }));
+        usort($rows, static fn (array $a, array $b) => strcmp((string) $b['created_at'], (string) $a['created_at']));
+        return array_slice(array_map(static function (array $sale) {
+            unset($sale['items']);
+            return $sale;
+        }, $rows), 0, 300);
     }
 
     public static function show(Request $request): array
     {
-        $db = Database::instance();
-        $sale = $db->queryOne('SELECT * FROM sales WHERE id = ?', [$request->params['id']]);
-        if (!$sale) {
-            throw new HttpException(404, 'Sale not found.');
+        foreach (Store::all()['sales'] as $sale) {
+            if ((int) $sale['id'] === (int) $request->params['id']) {
+                return $sale;
+            }
         }
-        $sale['items'] = $db->query(
-            'SELECT * FROM sale_items WHERE sale_id = ? ORDER BY id ASC',
-            [$request->params['id']]
-        );
-        return $sale;
+        throw new HttpException(404, 'Sale not found.');
     }
 
     public static function create(Request $request): Response
@@ -87,10 +81,10 @@ class SalesController
         }
 
         $customerName = trim((string) ($request->body['customer_name'] ?? '')) ?: null;
-        $customerPhone = trim((string) ($request->body['customer_phone'] ?? '')) ?: '0541855747';
+        $customerPhone = trim((string) ($request->body['customer_phone'] ?? '')) ?: null;
         $cashier = trim((string) ($request->body['cashier'] ?? '')) ?: null;
 
-        $sale = Database::instance()->transaction(function (Database $db) use (
+        $sale = Store::mutate(function (array &$store) use (
             $items,
             $discount,
             $amountPaid,
@@ -114,30 +108,50 @@ class SalesController
                 $variant = trim((string) ($item['variant'] ?? ''));
                 $unitPrice = array_key_exists('unit_price', $item) ? (float) $item['unit_price'] : NAN;
 
+                if (!$productId && $name !== '') {
+                    foreach ($store['products'] as $candidate) {
+                        if (strcasecmp((string) $candidate['name'], $name) !== 0) {
+                            continue;
+                        }
+                        $rowVariant = (string) ($candidate['variant'] ?? '');
+                        if ($variant !== '' && strcasecmp($rowVariant, $variant) !== 0) {
+                            continue;
+                        }
+                        $productId = (int) $candidate['id'];
+                        break;
+                    }
+                }
+
                 if ($productId) {
-                    $row = $db->queryOne('SELECT * FROM products WHERE id = ? FOR UPDATE', [$productId]);
-                    if (!$row) {
+                    $found = false;
+                    foreach ($store['products'] as &$row) {
+                        if ((int) $row['id'] !== $productId) {
+                            continue;
+                        }
+                        $found = true;
+                        if (($row['status'] ?? 'active') !== 'active') {
+                            throw new HttpException(400, $row['name'] . ' is not available for sale.');
+                        }
+                        if ((int) $row['stock_quantity'] < $quantity) {
+                            throw new HttpException(
+                                400,
+                                'Not enough stock for ' . $row['name'] . '. Only ' . $row['stock_quantity'] . ' left.'
+                            );
+                        }
+                        $name = $name !== '' ? $name : $row['name'];
+                        $productType = $productType !== '' ? $productType : $row['category'];
+                        $variant = $variant !== '' ? $variant : (string) ($row['variant'] ?? '');
+                        if (is_nan($unitPrice)) {
+                            $unitPrice = (float) $row['selling_price'];
+                        }
+                        $row['stock_quantity'] = (int) $row['stock_quantity'] - $quantity;
+                        $row['updated_at'] = Store::now();
+                        break;
+                    }
+                    unset($row);
+                    if (!$found) {
                         throw new HttpException(400, 'One of the selected products was not found.');
                     }
-                    if ($row['status'] !== 'active') {
-                        throw new HttpException(400, $row['name'] . ' is not available for sale.');
-                    }
-                    if ((int) $row['stock_quantity'] < $quantity) {
-                        throw new HttpException(
-                            400,
-                            'Not enough stock for ' . $row['name'] . '. Only ' . $row['stock_quantity'] . ' left.'
-                        );
-                    }
-                    $name = $name !== '' ? $name : $row['name'];
-                    $productType = $productType !== '' ? $productType : $row['category'];
-                    $variant = $variant !== '' ? $variant : (string) ($row['variant'] ?? '');
-                    if (is_nan($unitPrice)) {
-                        $unitPrice = (float) $row['selling_price'];
-                    }
-                    $db->execute(
-                        'UPDATE products SET stock_quantity = stock_quantity - ?, updated_at = NOW() WHERE id = ?',
-                        [$quantity, $productId]
-                    );
                 }
 
                 if ($name === '') {
@@ -171,50 +185,33 @@ class SalesController
             if ($amountPaid < $total) {
                 throw new HttpException(400, 'Amount paid must cover the grand total.');
             }
-            $changeAmount = round($amountPaid - $total, 2);
-            $receiptNumber = ReceiptNumber::next($db);
 
-            $db->execute(
-                'INSERT INTO sales (
-                    receipt_number, customer_name, customer_phone, subtotal, discount, total,
-                    amount_paid, change_amount, payment_method, cashier
-                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [
-                    $receiptNumber,
-                    $customerName,
-                    $customerPhone,
-                    $subtotal,
-                    $discount,
-                    $total,
-                    $amountPaid,
-                    $changeAmount,
-                    $paymentMethod,
-                    $cashier,
-                ]
-            );
-            $inserted = $db->queryOne('SELECT * FROM sales WHERE id = ?', [$db->lastId()]);
-
+            $saleId = Store::nextId($store['sales']);
             $savedItems = [];
+            $itemId = 1;
             foreach ($prepared as $item) {
-                $db->execute(
-                    'INSERT INTO sale_items
-                        (sale_id, product_id, product_name, product_type, variant, quantity, unit_price, subtotal)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                    [
-                        $inserted['id'],
-                        $item['product_id'],
-                        $item['product_name'],
-                        $item['product_type'],
-                        $item['variant'],
-                        $item['quantity'],
-                        $item['unit_price'],
-                        $item['subtotal'],
-                    ]
-                );
-                $savedItems[] = $db->queryOne('SELECT * FROM sale_items WHERE id = ?', [$db->lastId()]);
+                $item['id'] = $itemId;
+                $item['sale_id'] = $saleId;
+                $savedItems[] = $item;
+                $itemId += 1;
             }
 
-            $inserted['items'] = $savedItems;
+            $inserted = [
+                'id' => $saleId,
+                'receipt_number' => ReceiptNumber::next($store),
+                'customer_name' => $customerName,
+                'customer_phone' => $customerPhone,
+                'subtotal' => $subtotal,
+                'discount' => $discount,
+                'total' => $total,
+                'amount_paid' => $amountPaid,
+                'change_amount' => round($amountPaid - $total, 2),
+                'payment_method' => $paymentMethod,
+                'cashier' => $cashier,
+                'created_at' => Store::now(),
+                'items' => $savedItems,
+            ];
+            $store['sales'][] = $inserted;
             return $inserted;
         });
 
@@ -223,18 +220,25 @@ class SalesController
 
     public static function clear(Request $request): array
     {
-        Database::instance()->transaction(function (Database $db) {
-            $db->execute('DELETE FROM sale_items');
-            $db->execute('DELETE FROM sales');
-            $db->execute("UPDATE receipt_counter SET last_number = 0, last_date = '' WHERE id = 1");
+        Store::mutate(function (array &$store) {
+            $store['sales'] = [];
+            $store['counter'] = ['last_number' => 0, 'last_date' => ''];
         });
         return ['ok' => true];
     }
 
     public static function delete(Request $request): array
     {
-        $count = Database::instance()->execute('DELETE FROM sales WHERE id = ?', [$request->params['id']]);
-        if ($count === 0) {
+        $id = (int) $request->params['id'];
+        $removed = Store::mutate(function (array &$store) use ($id) {
+            $before = count($store['sales']);
+            $store['sales'] = array_values(array_filter(
+                $store['sales'],
+                static fn (array $row) => (int) $row['id'] !== $id
+            ));
+            return count($store['sales']) < $before;
+        });
+        if (!$removed) {
             throw new HttpException(404, 'Receipt not found.');
         }
         return ['ok' => true];

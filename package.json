@@ -7,8 +7,6 @@
     "install:all": "npm install --prefix frontend",
     "dev": "concurrently -n api,web -c magenta,cyan \"php -S localhost:4000 -t backend/public backend/public/router.php\" \"npm run dev --prefix frontend\"",
     "dev:api": "php -S localhost:4000 -t backend/public backend/public/router.php",
-    "db:up": "docker compose up -d",
-    "db:down": "docker compose down",
     "build": "npm run build --prefix frontend",
     "deploy": "npm run build && gh-pages -d frontend/dist"
   },

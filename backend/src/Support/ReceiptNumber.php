@@ -6,18 +6,12 @@ namespace App\Support;
 
 class ReceiptNumber
 {
-    public static function next(Database $db): string
+    public static function next(array &$data): string
     {
-        $day = $db->queryOne("SELECT DATE_FORMAT(CURDATE(), '%Y%m%d') AS day_key");
-        $dayKey = $day['day_key'];
-        $db->execute(
-            'UPDATE receipt_counter
-             SET last_number = CASE WHEN last_date = ? THEN last_number + 1 ELSE 1 END,
-                 last_date = ?
-             WHERE id = 1',
-            [$dayKey, $dayKey]
-        );
-        $row = $db->queryOne('SELECT last_number FROM receipt_counter WHERE id = 1');
-        return $dayKey . str_pad((string) $row['last_number'], 4, '0', STR_PAD_LEFT);
+        $dayKey = date('Ymd');
+        $counter = $data['counter'] ?? ['last_number' => 0, 'last_date' => ''];
+        $next = (($counter['last_date'] ?? '') === $dayKey) ? ((int) $counter['last_number'] + 1) : 1;
+        $data['counter'] = ['last_number' => $next, 'last_date' => $dayKey];
+        return $dayKey . str_pad((string) $next, 4, '0', STR_PAD_LEFT);
     }
 }

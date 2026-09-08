@@ -16,7 +16,7 @@ export default function Receipt({ sale, settings, preview = false }) {
   );
   const showCustomer = settings.show_customer_info && (sale.customer_name || sale.customer_phone);
   const footer =
-    settings.receipt_footer || "Thank you for shopping with The Fragrance Universe.";
+    settings.receipt_footer || "Thank you for shopping with the Fragrance Universe. We look forward to serving you again";
 
   return (
     <article
@@ -33,8 +33,9 @@ export default function Receipt({ sale, settings, preview = false }) {
         )}
         <h1>{settings.company_name || "THE FRAGRANCE UNIVERSE"}</h1>
         <p className="tagline">All Kinds of fragrance (Room, Laundry, Wardrobes, Car, Body etc)</p>
-        {settings.address && <p>{settings.address}</p>}
-        {settings.phone && <p>{settings.phone}</p>}
+        {(settings.address || settings.phone) && (
+          <p>{[settings.address, settings.phone].filter(Boolean).join(" · ")}</p>
+        )}
         {settings.email && <p>{settings.email}</p>}
       </header>
 

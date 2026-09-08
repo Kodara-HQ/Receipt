@@ -7,8 +7,8 @@ namespace App\Controllers;
 use App\Http\HttpException;
 use App\Http\Request;
 use App\Http\Response;
-use App\Support\Database;
 use App\Support\Jwt;
+use App\Support\Store;
 
 class AuthController
 {
@@ -20,10 +20,13 @@ class AuthController
             throw new HttpException(400, 'Username and password are required.');
         }
 
-        $user = Database::instance()->queryOne(
-            'SELECT * FROM users WHERE LOWER(username) = ?',
-            [$username]
-        );
+        $user = null;
+        foreach (Store::all()['users'] as $row) {
+            if (strtolower((string) $row['username']) === $username) {
+                $user = $row;
+                break;
+            }
+        }
         if (!$user || !password_verify($password, $user['password_hash'])) {
             throw new HttpException(401, 'Invalid username or password.');
         }
@@ -34,24 +37,18 @@ class AuthController
                 'username' => $user['username'],
                 'role' => $user['role'],
             ]),
-            'user' => [
-                'id' => (int) $user['id'],
-                'username' => $user['username'],
-                'role' => $user['role'],
-            ],
+            'user' => Store::publicUser($user),
         ]);
     }
 
     public static function me(Request $request): array
     {
-        $user = Database::instance()->queryOne(
-            'SELECT id, username, role, created_at FROM users WHERE id = ?',
-            [$request->user['id']]
-        );
-        if (!$user) {
-            throw new HttpException(404, 'User not found.');
+        foreach (Store::all()['users'] as $row) {
+            if ((int) $row['id'] === (int) $request->user['id']) {
+                return Store::publicUser($row);
+            }
         }
-        return $user;
+        throw new HttpException(404, 'User not found.');
     }
 
     public static function changePassword(Request $request): array
@@ -65,27 +62,25 @@ class AuthController
             throw new HttpException(400, 'New password must be at least 6 characters.');
         }
 
-        $db = Database::instance();
-        $user = $db->queryOne('SELECT * FROM users WHERE id = ?', [$request->user['id']]);
-        if (!$user) {
+        Store::mutate(function (array &$data) use ($request, $current, $next) {
+            foreach ($data['users'] as &$user) {
+                if ((int) $user['id'] !== (int) $request->user['id']) {
+                    continue;
+                }
+                if (!password_verify($current, $user['password_hash'])) {
+                    throw new HttpException(401, 'Current password is incorrect.');
+                }
+                $user['password_hash'] = password_hash($next, PASSWORD_BCRYPT, ['cost' => 12]);
+                return;
+            }
             throw new HttpException(404, 'User not found.');
-        }
-        if (!password_verify($current, $user['password_hash'])) {
-            throw new HttpException(401, 'Current password is incorrect.');
-        }
-
-        $db->execute('UPDATE users SET password_hash = ? WHERE id = ?', [
-            password_hash($next, PASSWORD_BCRYPT, ['cost' => 12]),
-            $user['id'],
-        ]);
+        });
         return ['ok' => true];
     }
 
     public static function users(Request $request): array
     {
-        return Database::instance()->query(
-            'SELECT id, username, role, created_at FROM users ORDER BY id'
-        );
+        return array_map([Store::class, 'publicUser'], Store::all()['users']);
     }
 
     public static function createUser(Request $request): Response
@@ -101,20 +96,22 @@ class AuthController
             throw new HttpException(400, 'Password must be at least 6 characters.');
         }
 
-        $db = Database::instance();
-        if ($db->queryOne('SELECT 1 FROM users WHERE LOWER(username) = ?', [$username])) {
-            throw new HttpException(409, 'That username is already taken.');
-        }
-
-        $db = Database::instance();
-        $db->execute(
-            'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
-            [$username, password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]), $role]
-        );
-        $user = $db->queryOne(
-            'SELECT id, username, role, created_at FROM users WHERE id = ?',
-            [$db->lastId()]
-        );
+        $user = Store::mutate(function (array &$data) use ($username, $password, $role) {
+            foreach ($data['users'] as $row) {
+                if (strtolower((string) $row['username']) === $username) {
+                    throw new HttpException(409, 'That username is already taken.');
+                }
+            }
+            $user = [
+                'id' => Store::nextId($data['users']),
+                'username' => $username,
+                'password_hash' => password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]),
+                'role' => $role,
+                'created_at' => Store::now(),
+            ];
+            $data['users'][] = $user;
+            return Store::publicUser($user);
+        });
         return Response::json($user, 201);
     }
 
@@ -124,8 +121,15 @@ class AuthController
         if ($id === (int) $request->user['id']) {
             throw new HttpException(400, 'You cannot delete your own account.');
         }
-        $count = Database::instance()->execute('DELETE FROM users WHERE id = ?', [$id]);
-        if ($count === 0) {
+        $removed = Store::mutate(function (array &$data) use ($id) {
+            $before = count($data['users']);
+            $data['users'] = array_values(array_filter(
+                $data['users'],
+                static fn (array $row) => (int) $row['id'] !== $id
+            ));
+            return count($data['users']) < $before;
+        });
+        if (!$removed) {
             throw new HttpException(404, 'User not found.');
         }
         return ['ok' => true];

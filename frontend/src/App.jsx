@@ -28,38 +28,36 @@ function ProtectedRoute({ children, adminOnly = false }) {
   return children;
 }
 
-// SettingsProvider is only mounted when the user is authenticated,
-// so it never fires an API call on the login page.
 function AuthenticatedShell() {
   return (
     <ProtectedRoute>
-      <SettingsProvider>
-        <AppLayout />
-      </SettingsProvider>
+      <AppLayout />
     </ProtectedRoute>
   );
 }
 
 export default function App() {
   return (
-    <AuthGuard>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route element={<AuthenticatedShell />}>
-          <Route path="/" element={<NewSale />} />
-          <Route path="/receipts" element={<SalesHistory />} />
-          <Route path="/settings" element={<ReceiptSettings />} />
-          <Route
-            path="/users"
-            element={
-              <ProtectedRoute adminOnly>
-                <Users />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
-    </AuthGuard>
+    <SettingsProvider>
+      <AuthGuard>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route element={<AuthenticatedShell />}>
+            <Route path="/" element={<NewSale />} />
+            <Route path="/receipts" element={<SalesHistory />} />
+            <Route path="/settings" element={<ReceiptSettings />} />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute adminOnly>
+                  <Users />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </AuthGuard>
+    </SettingsProvider>
   );
 }

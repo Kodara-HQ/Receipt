@@ -10,6 +10,7 @@ import { money } from "../utils/format";
 import { downloadReceiptPdf, printReceipt } from "../utils/pdf";
 
 const EMPTY_ITEM = {
+  product_id: null,
   name: "",
   product_type: "Perfume",
   variant: "",
@@ -28,7 +29,7 @@ export default function NewSale() {
   const [amountPaid, setAmountPaid] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("0541855747");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [cashier, setCashier] = useState(settings?.default_cashier || "");
   const [saving, setSaving] = useState(false);
   const [completed, setCompleted] = useState(null);
@@ -86,6 +87,7 @@ export default function NewSale() {
       return;
     }
     setItem({
+      product_id: product.id,
       name: product.name,
       product_type: PRODUCT_TYPES.includes(product.category) ? product.category : "Other",
       variant: product.variant || "",
@@ -115,6 +117,7 @@ export default function NewSale() {
       ...current,
       {
         key: Date.now(),
+        product_id: item.product_id,
         name,
         product_type: item.product_type,
         variant: item.variant.trim(),
@@ -153,6 +156,7 @@ export default function NewSale() {
     try {
       const sale = await api.post("/api/sales", {
         items: items.map((line) => ({
+          product_id: line.product_id || null,
           name: line.name,
           product_type: line.product_type,
           variant: line.variant,
@@ -172,7 +176,7 @@ export default function NewSale() {
       setDiscount("0");
       setAmountPaid("");
       setCustomerName("");
-      setCustomerPhone("0541855747");
+      setCustomerPhone("");
       setPrintAfterSave(shouldPrint);
       push(`Receipt ${sale.receipt_number} created.`);
     } catch (error) {
@@ -297,7 +301,7 @@ export default function NewSale() {
               <Field label="Customer name" hint="Optional">
                 <input className={inputClass} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
               </Field>
-              <Field label="Customer phone">
+              <Field label="Customer phone" hint="Optional">
                 <input className={inputClass} value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
               </Field>
               <Field label="Cashier">

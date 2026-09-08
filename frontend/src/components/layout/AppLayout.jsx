@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
+import BrandMark from "../BrandMark";
 import Sidebar from "./Sidebar";
 import { useSettings } from "../../context/SettingsContext";
 
@@ -11,7 +12,7 @@ export default function AppLayout() {
     <div className="app-shell min-h-screen bg-cream-100 text-ink-900">
       <Sidebar open={open} onClose={() => setOpen(false)} />
       <div className="lg:pl-72">
-        <header className="no-print sticky top-0 z-30 flex items-center justify-between border-b border-cream-200 bg-cream-50/90 px-4 py-3 backdrop-blur lg:hidden">
+        <header className="no-print sticky top-0 z-30 flex items-center justify-between border-b border-cream-200 bg-cream-100 px-4 py-3 lg:hidden">
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -19,7 +20,7 @@ export default function AppLayout() {
           >
             Menu
           </button>
-          <p className="font-display text-sm tracking-[0.18em] text-plum-800">TFU</p>
+          <BrandMark className="h-9 w-9" />
         </header>
         <main className="px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
           {error && (

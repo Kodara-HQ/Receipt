@@ -10,7 +10,7 @@ import { Field, btnGhost, btnPrimary, inputClass } from "../components/ui/Field"
 const SAMPLE_SALE = {
   receipt_number: "202609030001",
   customer_name: "Ama Mensah",
-  customer_phone: "0541855747",
+  customer_phone: "",
   subtotal: 280,
   discount: 10,
   total: 270,
@@ -159,6 +159,14 @@ export default function ReceiptSettings() {
               </select>
             </Field>
           </div>
+          <Field label="Cashier's name">
+            <input
+              className={inputClass}
+              value={form.default_cashier || ""}
+              onChange={(e) => update("default_cashier", e.target.value)}
+              placeholder="Daniella Delali"
+            />
+          </Field>
 
           <section className="rounded-2xl border border-cream-200 p-4">
             <h2 className="font-display text-xl text-plum-800">Company logo</h2>
@@ -235,7 +243,11 @@ export default function ReceiptSettings() {
             </span>
           </div>
           <div className="overflow-auto rounded-2xl bg-cream-200 p-4">
-            <Receipt sale={SAMPLE_SALE} settings={previewSettings} preview />
+            <Receipt
+              sale={{ ...SAMPLE_SALE, cashier: previewSettings.default_cashier || SAMPLE_SALE.cashier }}
+              settings={previewSettings}
+              preview
+            />
           </div>
         </aside>
       </div>

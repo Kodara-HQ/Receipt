@@ -7,8 +7,8 @@ namespace App\Controllers;
 use App\Http\HttpException;
 use App\Http\Request;
 use App\Http\Response;
-use App\Support\Database;
 use App\Support\ProductTypes;
+use App\Support\Store;
 
 class ProductsController
 {
@@ -16,40 +16,33 @@ class ProductsController
 
     public static function list(Request $request): array
     {
-        $search = trim((string) ($request->query['search'] ?? ''));
+        $search = strtolower(trim((string) ($request->query['search'] ?? '')));
         $category = trim((string) ($request->query['category'] ?? ''));
         $status = trim((string) ($request->query['status'] ?? ''));
-        $params = [];
-        $where = [];
 
-        if ($search !== '') {
-            $params[] = '%' . strtolower($search) . '%';
-            $where[] = '(LOWER(name) LIKE ? OR LOWER(COALESCE(variant, \'\')) LIKE ?)';
-            $params[] = '%' . strtolower($search) . '%';
-        }
-        if ($category !== '' && in_array($category, ProductTypes::ALL, true)) {
-            $params[] = $category;
-            $where[] = 'category = ?';
-        }
-        if ($status !== '' && in_array($status, self::STATUSES, true)) {
-            $params[] = $status;
-            $where[] = 'status = ?';
-        }
-
-        $sql = 'SELECT *, (stock_quantity <= low_stock_threshold) AS is_low_stock FROM products';
-        if ($where) {
-            $sql .= ' WHERE ' . implode(' AND ', $where);
-        }
-        $sql .= ' ORDER BY name ASC';
-        return Database::instance()->query($sql, $params);
+        $rows = array_map([Store::class, 'withLowStock'], Store::all()['products'] ?? []);
+        $rows = array_values(array_filter($rows, static function (array $row) use ($search, $category, $status) {
+            if ($search !== '') {
+                $haystack = strtolower(($row['name'] ?? '') . ' ' . ($row['variant'] ?? ''));
+                if (!str_contains($haystack, $search)) {
+                    return false;
+                }
+            }
+            if ($category !== '' && ($row['category'] ?? '') !== $category) {
+                return false;
+            }
+            if ($status !== '' && ($row['status'] ?? '') !== $status) {
+                return false;
+            }
+            return true;
+        }));
+        usort($rows, static fn (array $a, array $b) => strcasecmp((string) $a['name'], (string) $b['name']));
+        return $rows;
     }
 
     public static function show(Request $request): array
     {
-        $row = Database::instance()->queryOne(
-            'SELECT *, (stock_quantity <= low_stock_threshold) AS is_low_stock FROM products WHERE id = ?',
-            [$request->params['id']]
-        );
+        $row = self::byId($request->params['id']);
         if (!$row) {
             throw new HttpException(404, 'Product not found.');
         }
@@ -59,48 +52,32 @@ class ProductsController
     public static function create(Request $request): Response
     {
         $data = self::parse($request->body);
-        $db = Database::instance();
-        $db->execute(
-            'INSERT INTO products
-                (name, category, variant, selling_price, cost_price, stock_quantity, low_stock_threshold, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [
-                $data['name'],
-                $data['category'],
-                $data['variant'],
-                $data['selling_price'],
-                $data['cost_price'],
-                $data['stock_quantity'],
-                $data['low_stock_threshold'],
-                $data['status'],
-            ]
-        );
-        $row = self::byId($db->lastId());
+        $row = Store::mutate(function (array &$store) use ($data) {
+            $row = $data + [
+                'id' => Store::nextId($store['products']),
+                'created_at' => Store::now(),
+                'updated_at' => Store::now(),
+            ];
+            $store['products'][] = $row;
+            return Store::withLowStock($row);
+        });
         return Response::json($row, 201);
     }
 
     public static function update(Request $request): array
     {
         $data = self::parse($request->body);
-        $count = Database::instance()->execute(
-            'UPDATE products SET
-                name = ?, category = ?, variant = ?, selling_price = ?, cost_price = ?,
-                stock_quantity = ?, low_stock_threshold = ?, status = ?, updated_at = NOW()
-             WHERE id = ?',
-            [
-                $data['name'],
-                $data['category'],
-                $data['variant'],
-                $data['selling_price'],
-                $data['cost_price'],
-                $data['stock_quantity'],
-                $data['low_stock_threshold'],
-                $data['status'],
-                $request->params['id'],
-            ]
-        );
-        $row = self::byId($request->params['id']);
-        if ($count === 0 && !$row) {
+        $row = Store::mutate(function (array &$store) use ($request, $data) {
+            foreach ($store['products'] as &$product) {
+                if ((int) $product['id'] !== (int) $request->params['id']) {
+                    continue;
+                }
+                $product = array_merge($product, $data, ['updated_at' => Store::now()]);
+                return Store::withLowStock($product);
+            }
+            return null;
+        });
+        if (!$row) {
             throw new HttpException(404, 'Product not found.');
         }
         return $row;
@@ -113,13 +90,21 @@ class ProductsController
             throw new HttpException(400, 'Provide a whole-number stock change.');
         }
         $delta = (int) $delta;
-        $count = Database::instance()->execute(
-            'UPDATE products
-             SET stock_quantity = stock_quantity + ?, updated_at = NOW()
-             WHERE id = ? AND stock_quantity + ? >= 0',
-            [$delta, $request->params['id'], $delta]
-        );
-        $row = $count ? self::byId($request->params['id']) : null;
+        $row = Store::mutate(function (array &$store) use ($request, $delta) {
+            foreach ($store['products'] as &$product) {
+                if ((int) $product['id'] !== (int) $request->params['id']) {
+                    continue;
+                }
+                $next = (int) $product['stock_quantity'] + $delta;
+                if ($next < 0) {
+                    return null;
+                }
+                $product['stock_quantity'] = $next;
+                $product['updated_at'] = Store::now();
+                return Store::withLowStock($product);
+            }
+            return null;
+        });
         if (!$row) {
             throw new HttpException(400, 'Stock cannot go below zero, or the product was not found.');
         }
@@ -128,10 +113,23 @@ class ProductsController
 
     public static function delete(Request $request): array
     {
-        $db = Database::instance();
-        $db->execute('UPDATE sale_items SET product_id = NULL WHERE product_id = ?', [$request->params['id']]);
-        $count = $db->execute('DELETE FROM products WHERE id = ?', [$request->params['id']]);
-        if ($count === 0) {
+        $id = (int) $request->params['id'];
+        $removed = Store::mutate(function (array &$store) use ($id) {
+            $before = count($store['products']);
+            $store['products'] = array_values(array_filter(
+                $store['products'],
+                static fn (array $row) => (int) $row['id'] !== $id
+            ));
+            foreach ($store['sales'] as &$sale) {
+                foreach ($sale['items'] as &$item) {
+                    if ((int) ($item['product_id'] ?? 0) === $id) {
+                        $item['product_id'] = null;
+                    }
+                }
+            }
+            return count($store['products']) < $before;
+        });
+        if (!$removed) {
             throw new HttpException(404, 'Product not found.');
         }
         return ['ok' => true];
@@ -139,10 +137,12 @@ class ProductsController
 
     private static function byId(int|string $id): ?array
     {
-        return Database::instance()->queryOne(
-            'SELECT *, (stock_quantity <= low_stock_threshold) AS is_low_stock FROM products WHERE id = ?',
-            [$id]
-        );
+        foreach (Store::all()['products'] as $row) {
+            if ((int) $row['id'] === (int) $id) {
+                return Store::withLowStock($row);
+            }
+        }
+        return null;
     }
 
     private static function parse(array $body, bool $partial = false): array
