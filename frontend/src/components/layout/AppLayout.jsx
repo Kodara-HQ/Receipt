@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import BrandMark from "../BrandMark";
+import Copyright from "../Copyright";
 import Sidebar from "./Sidebar";
 import { useSettings } from "../../context/SettingsContext";
 
@@ -34,6 +35,9 @@ export default function AppLayout() {
             <Outlet />
           )}
         </main>
+        <footer className="no-print px-4 pb-5 sm:px-6 lg:hidden">
+          <Copyright />
+        </footer>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import BrandMark from "../components/BrandMark";
+import Copyright from "../components/Copyright";
 import { inputClass, btnPrimary } from "../components/ui/Field";
 
 export default function Login() {
@@ -85,6 +86,9 @@ export default function Login() {
         <p className="mt-6 text-center text-xs text-ink-400">
           THE FRAGRANCE UNIVERSE · Receipt System
         </p>
+        <div className="mt-2">
+          <Copyright />
+        </div>
       </div>
     </div>
   );

@@ -36,7 +36,11 @@ export default function Receipt({ sale, settings, preview = false }) {
         {(settings.address || settings.phone) && (
           <p>{[settings.address, settings.phone].filter(Boolean).join(" · ")}</p>
         )}
-        {settings.email && <p>{settings.email}</p>}
+        {settings.email && (
+          <p className="receipt-plain">
+            {settings.email.replace("@", "\u200B@")}
+          </p>
+        )}
       </header>
 
       <div className="receipt-rule" />
@@ -185,6 +189,14 @@ export default function Receipt({ sale, settings, preview = false }) {
         }
         .receipt-header p {
           margin: 0;
+        }
+        .receipt-sheet a,
+        .receipt-sheet a:link,
+        .receipt-sheet a:visited,
+        .receipt-sheet a[x-apple-data-detectors] {
+          color: inherit !important;
+          text-decoration: none !important;
+          pointer-events: none;
         }
         .receipt-rule {
           border-top: 1px dashed #111;

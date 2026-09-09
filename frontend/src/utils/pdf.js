@@ -50,6 +50,7 @@ export async function printReceipt(element) {
 <html>
   <head>
     <meta charset="utf-8" />
+    <meta name="format-detection" content="telephone=no, email=no, address=no" />
     <title>THE FRAGRANCE UNIVERSE Receipt</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />

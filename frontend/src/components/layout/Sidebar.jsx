@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import BrandMark from "../BrandMark";
+import Copyright from "../Copyright";
 
 export default function Sidebar({ open, onClose }) {
   const { user, logout, isAdmin } = useAuth();
@@ -67,6 +68,9 @@ export default function Sidebar({ open, onClose }) {
             >
               Sign out
             </button>
+          </div>
+          <div className="mt-3">
+            <Copyright />
           </div>
         </div>
       </aside>
