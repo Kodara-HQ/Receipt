@@ -14,7 +14,7 @@ use App\Http\Router;
 $router = new Router();
 
 $router->add('GET', '/', static fn (Request $_request) => Response::json([
-    'name' => 'THE FRAGRANCE UNIVERSE',
+    'name' => 'EVERY FRAGRANCE',
     'ok' => true,
 ]), false);
 

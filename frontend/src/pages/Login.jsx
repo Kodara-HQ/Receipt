@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useSettings } from "../context/SettingsContext";
 import BrandMark from "../components/BrandMark";
 import Copyright from "../components/Copyright";
 import { inputClass, btnPrimary } from "../components/ui/Field";
 
 export default function Login() {
   const { login } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
+  const companyName = settings?.company_name || "EVERY FRAGRANCE";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -33,7 +36,7 @@ export default function Login() {
         {/* Brand header */}
         <div className="mb-8 text-center">
           <BrandMark className="mx-auto mb-4 h-28 w-28" />
-          <h1 className="font-display text-3xl text-plum-900">THE FRAGRANCE UNIVERSE</h1>
+          <h1 className="font-display text-3xl text-plum-900">{companyName}</h1>
           <p className="mt-1 text-sm text-ink-500">All Kinds of fragrance (Room, Laundry, Wardrobes, Car, Body etc)</p>
         </div>
 
@@ -84,7 +87,7 @@ export default function Login() {
         </div>
 
         <p className="mt-6 text-center text-xs text-ink-400">
-          THE FRAGRANCE UNIVERSE · Receipt System
+          {companyName} · Receipt System
         </p>
         <div className="mt-2">
           <Copyright />

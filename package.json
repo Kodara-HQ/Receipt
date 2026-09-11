@@ -2,7 +2,7 @@
   "name": "the-fragrance-universe",
   "private": true,
   "version": "1.0.0",
-  "description": "Receipting and sales management for The Fragrance Universe",
+  "description": "Receipting and sales management for Every Fragrance",
   "scripts": {
     "install:all": "npm install --prefix frontend",
     "dev": "concurrently -n api,web -c magenta,cyan \"php -S localhost:4000 -t backend/public backend/public/router.php\" \"npm run dev --prefix frontend\"",

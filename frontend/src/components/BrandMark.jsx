@@ -9,7 +9,7 @@ export default function BrandMark({ className = "h-16 w-16", light = false }) {
     return (
       <img
         src={src}
-        alt={settings?.company_name || "THE FRAGRANCE UNIVERSE"}
+        alt={settings?.company_name || "EVERY FRAGRANCE"}
         className={`${className} object-contain`}
       />
     );

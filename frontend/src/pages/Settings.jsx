@@ -10,7 +10,7 @@ export default function Settings() {
   const [form, setForm] = useState({
     default_cashier: settings?.default_cashier || "",
     currency: settings?.currency || "GH₵",
-    company_name: settings?.company_name || "THE FRAGRANCE UNIVERSE",
+    company_name: settings?.company_name || "EVERY FRAGRANCE",
   });
   const [saving, setSaving] = useState(false);
 

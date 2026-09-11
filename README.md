@@ -1,4 +1,4 @@
-# THE FRAGRANCE UNIVERSE
+# EVERY FRAGRANCE
 
 A simple receipting and sales system for a perfume and air-freshener shop.
 

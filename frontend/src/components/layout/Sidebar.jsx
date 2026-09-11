@@ -1,10 +1,13 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useSettings } from "../../context/SettingsContext";
 import BrandMark from "../BrandMark";
 import Copyright from "../Copyright";
 
 export default function Sidebar({ open, onClose }) {
   const { user, logout, isAdmin } = useAuth();
+  const { settings } = useSettings();
+  const companyName = settings?.company_name || "EVERY FRAGRANCE";
 
   const LINKS = [
     { to: "/", label: "Generate Receipt" },
@@ -31,7 +34,7 @@ export default function Sidebar({ open, onClose }) {
         <div className="border-b border-cream-200 px-6 py-7 text-center">
           <BrandMark className="mx-auto h-28 w-28" />
           <h1 className="mt-4 font-display text-[1.65rem] leading-tight text-plum-800">
-            THE FRAGRANCE UNIVERSE
+            {companyName}
           </h1>
         </div>
 

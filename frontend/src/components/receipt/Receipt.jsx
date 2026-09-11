@@ -16,7 +16,7 @@ export default function Receipt({ sale, settings, preview = false }) {
   );
   const showCustomer = settings.show_customer_info && (sale.customer_name || sale.customer_phone);
   const footer =
-    settings.receipt_footer || "Thank you for shopping with the Fragrance Universe. We look forward to serving you again";
+    settings.receipt_footer || "Thank you for shopping with Every Fragrance. We look forward to serving you again";
 
   return (
     <article
@@ -31,7 +31,7 @@ export default function Receipt({ sale, settings, preview = false }) {
         ) : (
           <div className="receipt-monogram">TFU</div>
         )}
-        <h1>{settings.company_name || "THE FRAGRANCE UNIVERSE"}</h1>
+        <h1>{settings.company_name || "EVERY FRAGRANCE"}</h1>
         <p className="tagline">All Kinds of fragrance (Room, Laundry, Wardrobes, Car, Body etc)</p>
         {(settings.address || settings.phone) && (
           <p>{[settings.address, settings.phone].filter(Boolean).join(" · ")}</p>
